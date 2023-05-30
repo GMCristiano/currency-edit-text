@@ -1,3 +1,6 @@
+group = PUBLISH_GROUP_ID
+version = PUBLISH_VERSION
+
 // Create variables with empty default values
 ext["ossrhUsername"] = ''
 ext["ossrhPassword"] = ''
@@ -32,8 +35,8 @@ nexusPublishing {
             username = ossrhUsername
             password = ossrhPassword
 
-            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            nexusUrl.set(uri(PUBLISH_URL))
+            snapshotRepositoryUrl.set(uri(PUBLISH_SNAPSHOT_URL))
         }
     }
 }
