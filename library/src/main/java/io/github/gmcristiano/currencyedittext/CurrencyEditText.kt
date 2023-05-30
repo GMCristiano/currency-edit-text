@@ -16,21 +16,20 @@ class CurrencyEditText(context: Context, attrs: AttributeSet?) : AppCompatEditTe
   private var locale = Locale.getDefault()
   private var digitsBeforeZero = Int.MAX_VALUE
   private var digitsAfterZero = 2
-  private var mDefaultText: String = ""
-  private var GROUPING_SEPARATOR = '0'
-  private var DECIMAL_SEPARATOR = '0'
-  private var LEADING_ZERO_FILTER_REGEX = "^0+(?!$)"
-  private var mPreviousText = ""
-  private var mPreviousSelectionEnd = 0
-  private var mNumberFilterRegex: String? = null
-  private val mNumericListeners: MutableList<NumericValueWatcher> = ArrayList()
+  private var groupingSeparator = ','
+  private var decimalSeparator = '.'
+  private var defaultText: String = ""
+  private var numberFilterRegex: String = ""
+  private val numericListeners: MutableList<NumericValueWatcher> = ArrayList()
+  private var previousText = ""
+  private var previousSelectionEnd = 0
 
   //region TextWatcher
   private val mTextWatcher: TextWatcher = object : TextWatcher {
 
     override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
-      mPreviousText = text.toString()
-      mPreviousSelectionEnd = selectionEnd
+      previousText = text.toString()
+      previousSelectionEnd = selectionEnd
     }
 
     override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) = Unit
@@ -43,22 +42,22 @@ class CurrencyEditText(context: Context, attrs: AttributeSet?) : AppCompatEditTe
         return
       }
 
-      // Deal with clear number with empty space before cursor.
-      if (textChanged.count { it == GROUPING_SEPARATOR } < mPreviousText.count { it == GROUPING_SEPARATOR } &&
-        textChanged.length == mPreviousText.length - 1 &&
+      // Deal with clear number with groupingSeparator before cursor.
+      if (textChanged.count { it == groupingSeparator } < previousText.count { it == groupingSeparator } &&
+        textChanged.length == previousText.length - 1 &&
         textChanged.length >= selectionEnd && // hammer concurrency? - component sometimes has selectionEnd above
         selectionEnd > 0 && // hammer - component sometimes has negative value
-        mPreviousText.substring(selectionEnd, selectionEnd+1).isBlank() // allow only backspace
+        previousText.substring(selectionEnd, selectionEnd+1).firstOrNull() == groupingSeparator // allow only backspace
       ) {
         textChanged = textChanged.removeRange(selectionEnd - 1, selectionEnd)
       }
 
       // If user presses Non DECIMAL_SEPARATOR, convert it to correct DECIMAL_SEPARATOR
       if (!Character.isDigit(textChanged[textChanged.length - 1]) &&
-        !textChanged.endsWith(DECIMAL_SEPARATOR.toString()) &&
+        !textChanged.endsWith(decimalSeparator.toString()) &&
         (textChanged.endsWith(",") || textChanged.endsWith("."))
       ) {
-        textChanged = textChanged.substring(0, textChanged.length - 1) + DECIMAL_SEPARATOR
+        textChanged = textChanged.substring(0, textChanged.length - 1) + decimalSeparator
       }
 
       // Limit decimal digits.
@@ -67,22 +66,22 @@ class CurrencyEditText(context: Context, attrs: AttributeSet?) : AppCompatEditTe
       if (digitLimitBeforeZeroReached(textChanged) ||
         digitLimitAfterZeroReached(textChanged) ||
         hasGroupingSeparatorAfterDecimalSeparator(textChanged) ||
-        countMatches(textChanged, DECIMAL_SEPARATOR.toString()) > 1
+        countMatches(textChanged, decimalSeparator.toString()) > 1
       ) {
-        setTextInternal(mPreviousText) // cancel change and revert to previous input
-        setSelection(mPreviousSelectionEnd)
+        setTextInternal(previousText) // cancel change and revert to previous input
+        setSelection(previousSelectionEnd)
         return
       }
 
       // If only decimal separator is inputted, add a zero to the left of it
-      if (textChanged == DECIMAL_SEPARATOR.toString()) {
+      if (textChanged == decimalSeparator.toString()) {
         textChanged = "0$textChanged"
       }
 
       val textChangedFormatted = format(textChanged)
       setTextInternal(textChangedFormatted)
-      val offSetSelection = text.toString().length - mPreviousText.length
-      setSelection(maxOf(mPreviousSelectionEnd + offSetSelection, 0))
+      val offSetSelection = text.toString().length - previousText.length
+      setSelection(maxOf(previousSelectionEnd + offSetSelection, 0))
       handleNumericValueChanged()
     }
   }
@@ -122,40 +121,40 @@ class CurrencyEditText(context: Context, attrs: AttributeSet?) : AppCompatEditTe
 
   private fun reload() {
     val symbols = DecimalFormatSymbols(locale)
-    GROUPING_SEPARATOR = symbols.groupingSeparator
-    DECIMAL_SEPARATOR = symbols.decimalSeparator
-    mNumberFilterRegex = "[^\\d\\$DECIMAL_SEPARATOR]"
+    groupingSeparator = symbols.groupingSeparator
+    decimalSeparator = symbols.decimalSeparator
+    numberFilterRegex = "[^\\d\\$decimalSeparator]"
   }
 
   private fun handleNumericValueCleared() {
-    for (listener in mNumericListeners) {
+    for (listener in numericListeners) {
       listener.onCleared()
     }
   }
 
   private fun handleNumericValueChanged() {
-    for (listener in mNumericListeners) {
+    for (listener in numericListeners) {
       listener.onChanged(numericValue)
     }
   }
 
   fun addNumericValueChangedListener(watcher: NumericValueWatcher) {
-    mNumericListeners.add(watcher)
+    numericListeners.add(watcher)
   }
 
   fun removeAllNumericValueChangedListeners() {
-    while (mNumericListeners.isNotEmpty()) {
-      mNumericListeners.removeAt(0)
+    while (numericListeners.isNotEmpty()) {
+      numericListeners.removeAt(0)
     }
   }
 
   fun setDefaultNumericValue(defaultNumericValue: Double, defaultNumericFormat: String) {
-    mDefaultText = String.format(defaultNumericFormat, defaultNumericValue)
-    setTextInternal(mDefaultText)
+    defaultText = String.format(defaultNumericFormat, defaultNumericValue)
+    setTextInternal(defaultText)
   }
 
   fun clear() {
-    setTextInternal(mDefaultText)
+    setTextInternal(defaultText)
     handleNumericValueChanged()
   }
 
@@ -172,12 +171,13 @@ class CurrencyEditText(context: Context, attrs: AttributeSet?) : AppCompatEditTe
 
   private fun format(original: String): String? {
     val parts = splitOriginalText(original)
-    var number: String? = parts[0].replace(mNumberFilterRegex!!.toRegex(), "").replaceFirst(LEADING_ZERO_FILTER_REGEX.toRegex(), "")
-    number = reverse(reverse(number)!!.replace("(.{3})".toRegex(), "$1$GROUPING_SEPARATOR"))
-    number = removeStart(number, GROUPING_SEPARATOR.toString())
+    var number: String? = parts[0].replace(numberFilterRegex.toRegex(), "")
+      .replaceFirst("^0+(?!$)".toRegex(), "")
+    number = reverse(reverse(number)!!.replace("(.{3})".toRegex(), "$1$groupingSeparator"))
+    number = removeStart(number, groupingSeparator.toString())
     if (parts.size > 1) {
-      parts[1] = parts[1].replace(mNumberFilterRegex!!.toRegex(), "")
-      number += DECIMAL_SEPARATOR + parts[1]
+      parts[1] = parts[1].replace(numberFilterRegex.toRegex(), "")
+      number += decimalSeparator + parts[1]
     }
     if (number.equals("0")) {
       return ""
@@ -186,7 +186,7 @@ class CurrencyEditText(context: Context, attrs: AttributeSet?) : AppCompatEditTe
   }
 
   private fun splitOriginalText(original: String): Array<String> {
-    return original.split(("\\$DECIMAL_SEPARATOR").toRegex()).toTypedArray()
+    return original.split(("\\$decimalSeparator").toRegex()).toTypedArray()
   }
 
   private fun setTextInternal(text: String?) {
@@ -227,10 +227,10 @@ class CurrencyEditText(context: Context, attrs: AttributeSet?) : AppCompatEditTe
   }
 
   private fun hasGroupingSeparatorAfterDecimalSeparator(text: String): Boolean {
-    // Return true if thousand separator (.) comes after a decimal seperator. (,)
-    if (text.contains("$GROUPING_SEPARATOR") && text.contains("$DECIMAL_SEPARATOR")) {
-      val firstIndexOfDecimal = text.indexOf(DECIMAL_SEPARATOR)
-      val lastIndexOfGrouping = text.lastIndexOf(GROUPING_SEPARATOR)
+    // Return true if thousand separator (.) comes after a decimal separator. (,)
+    if (text.contains("$groupingSeparator") && text.contains("$decimalSeparator")) {
+      val firstIndexOfDecimal = text.indexOf(decimalSeparator)
+      val lastIndexOfGrouping = text.lastIndexOf(groupingSeparator)
       if (firstIndexOfDecimal < lastIndexOfGrouping) {
         return true
       }
@@ -241,14 +241,14 @@ class CurrencyEditText(context: Context, attrs: AttributeSet?) : AppCompatEditTe
   private fun digitLimitBeforeZeroReached(text: String): Boolean {
     // Return true if limit is reached
     var part = text
-    if (text.contains("$DECIMAL_SEPARATOR")) {
+    if (text.contains("$decimalSeparator")) {
       // Dot is special character in regex, so we have to treat it specially.
       val parts = splitOriginalText(text)
       if (parts.size > 1) {
         part = parts[0]
       }
     }
-    part = part.replace(GROUPING_SEPARATOR.toString(), "")
+    part = part.replace(groupingSeparator.toString(), "")
     if (part.length > digitsBeforeZero) {
       return true
     }
@@ -257,7 +257,7 @@ class CurrencyEditText(context: Context, attrs: AttributeSet?) : AppCompatEditTe
 
   private fun digitLimitAfterZeroReached(text: String): Boolean {
     // Return true if limit is reached
-    if (text.contains("$DECIMAL_SEPARATOR")) {
+    if (text.contains("$decimalSeparator")) {
       // Dot is special character in regex, so we have to treat it specially.
       val parts = splitOriginalText(text)
       if (parts.size > 1) {
