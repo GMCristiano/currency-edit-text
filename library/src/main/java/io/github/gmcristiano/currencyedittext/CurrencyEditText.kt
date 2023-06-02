@@ -25,7 +25,7 @@ class CurrencyEditText(context: Context, attrs: AttributeSet?) : AppCompatEditTe
   private var previousSelectionEnd = 0
 
   //region TextWatcher
-  private val mTextWatcher: TextWatcher = object : TextWatcher {
+  private val textWatcher: TextWatcher = object : TextWatcher {
 
     override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
       previousText = text.toString()
@@ -103,7 +103,7 @@ class CurrencyEditText(context: Context, attrs: AttributeSet?) : AppCompatEditTe
 
     inputType = InputType.TYPE_CLASS_PHONE
     reload()
-    addTextChangedListener(mTextWatcher)
+    addTextChangedListener(textWatcher)
   }
 
   fun setLocale(locale: Locale) {
@@ -190,9 +190,9 @@ class CurrencyEditText(context: Context, attrs: AttributeSet?) : AppCompatEditTe
   }
 
   private fun setTextInternal(text: String?) {
-    removeTextChangedListener(mTextWatcher)
+    removeTextChangedListener(textWatcher)
     setText(text)
-    addTextChangedListener(mTextWatcher)
+    addTextChangedListener(textWatcher)
   }
 
   private fun reverse(original: String?): String? {

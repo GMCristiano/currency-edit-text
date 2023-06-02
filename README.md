@@ -1,8 +1,8 @@
 ![Maven Central](https://img.shields.io/maven-central/v/io.github.gmcristiano/currency-edit-text?versionPrefix=1.0.1)
 
-# currency-edit-text
+# CurrencyEditText
 
-Android EditText for currency values. It supports grouping and decimal separators.
+Android EditText for currency values. It supports grouping and decimal separators from different cultures.
 
 ### Usage
 
@@ -10,6 +10,14 @@ Android EditText for currency values. It supports grouping and decimal separator
 dependencies {
   implementation 'io.github.gmcristiano:currency-edit-text:1.0.1'
 }
+```
+
+```xml
+    <io.github.gmcristiano.currencyedittext.CurrencyEditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:digitsBeforeZero="13"
+        app:digitsAfterZero="4" />
 ```
 
 # License
