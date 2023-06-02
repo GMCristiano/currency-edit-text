@@ -4,6 +4,8 @@
 
 Android EditText for currency values. It supports grouping and decimal separators from different cultures.
 
+<img src="docs/example.gif" width="180" height="400"/>
+
 ### Usage
 
 ```kotlin
@@ -13,11 +15,11 @@ dependencies {
 ```
 
 ```xml
-    <io.github.gmcristiano.currencyedittext.CurrencyEditText
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:digitsBeforeZero="13"
-        app:digitsAfterZero="4" />
+<io.github.gmcristiano.currencyedittext.CurrencyEditText
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    app:digitsBeforeZero="13"
+    app:digitsAfterZero="4" />
 ```
 
 # License
