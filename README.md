@@ -1,4 +1,4 @@
-![Maven Central](https://img.shields.io/maven-central/v/io.github.gmcristiano/currency-edit-text?versionPrefix=1.0.0)
+![Maven Central](https://img.shields.io/maven-central/v/io.github.gmcristiano/currency-edit-text?versionPrefix=1.0.1)
 
 # currency-edit-text
 
@@ -8,7 +8,7 @@ Android EditText for currency values. It supports grouping and decimal separator
 
 ```kotlin
 dependencies {
-  implementation 'io.github.gmcristiano:currency-edit-text:1.0.0'
+  implementation 'io.github.gmcristiano:currency-edit-text:1.0.1'
 }
 ```
 
